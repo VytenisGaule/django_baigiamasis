@@ -1,0 +1,6 @@
+venv/
+.idea/
+__pycache__/
+*.py[cod]
+*$py.class
+/django_baigiamasis/secret.py
