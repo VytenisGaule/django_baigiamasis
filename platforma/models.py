@@ -40,7 +40,7 @@ class HScode(models.Model):
 class HSTariff(models.Model):
     origin_id = models.ForeignKey(Origin, on_delete=models.CASCADE)
     hs_code_id = models.ForeignKey(HScode, on_delete=models.CASCADE)
-    tariff_rate = models.DecimalField(max_digits=5, decimal_places=2, help_text="Tariff rate for the HS code and origin")
+    tariff_rate = models.DecimalField(max_digits=5, decimal_places=2, help_text="Tariff rate of HS code and origin")
     legal_base = models.CharField('Legal base', max_length=100, help_text='EU regulation link')
 
     class Meta:
