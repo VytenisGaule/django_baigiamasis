@@ -49,3 +49,20 @@ class HSTariff(models.Model):
 
     def __str__(self):
         return f'{self.tariff_rate}'
+
+
+class Distributor(models.Model):
+    distributor_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='distributor',
+                                            limit_choices_to={'groups__name': 'distributor'})
+    company_name = models.CharField(max_length=255)
+    address = models.CharField(max_length=1000)
+    about = models.CharField(max_length=1000, null=True, blank=True)
+
+    class Meta:
+        ordering = ['company_name']
+        permissions = [
+            ("can_edit_items", "Can edit owned items"),
+        ]
+
+    def __str__(self):
+        return f'{self.company_name}'

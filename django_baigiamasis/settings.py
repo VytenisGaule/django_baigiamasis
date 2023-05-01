@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
-from .secret import DJANGO_SECRET_KEY
+from .secret import DJANGO_SECRET_KEY, EMAIL_HOST, EMAIL_USER, EMAIL_HOST_PASSWORD
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -118,6 +118,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_ROOT = Path.joinpath(BASE_DIR, 'platforma/media')
+MEDIA_URL = '/media/'
+LOGIN_REDIRECT_URL = "/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -125,7 +128,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-from .secret import EMAIL_HOST, EMAIL_USER, EMAIL_HOST_PASSWORD
 
 DEFAULT_FROM_EMAIL = EMAIL_USER
 EMAIL_HOST = EMAIL_HOST

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+
+<p> {% trans 'Hello' %} {{ user }}{% trans ', your visits ' %}{{ num_visits_cntx }}{% trans ' times' %}</p>
+<p>testavimas - grupė == {{ user.groups.all }} </p>
+{% for group in user.groups.all %}
+    {% if group.name == 'distributors' %}
+        <p> distributorius </p>
+    {% endif %}
+    {% if group.name == 'forwarders' %}
+        <p> forwarders </p>
+    {% endif %}
+    {% if group.name == 'customers' %}
+        <p> customers </p>
+    {% endif %}
+{% endfor %}
+{% endblock %}

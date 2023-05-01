@@ -1,0 +1,8 @@
+{% extends "base.html" %} {% block content %}
+
+<p>Turėtų būti distributorių sąrašas</p>
+{% for distributor_obj in distributor_list %}
+<li><a href="kazkas"> {{ distributor_obj.company_name }} - {{ distributor_obj.distributor_user }} </a></li>
+{% endfor %}
+
+{% endblock %}
