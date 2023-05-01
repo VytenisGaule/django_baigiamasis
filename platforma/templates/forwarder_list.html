@@ -1,0 +1,8 @@
+{% extends "base.html" %} {% block content %}
+
+<p>Turėtų būti vežėjų sąrašas</p>
+{% for forwarder_obj in forwarder_list %}
+<li><a href="kazkas"> {{ forwarder_obj.company_name }} - {{ forwarder_obj.forwarder_user }} </a></li>
+{% endfor %}
+
+{% endblock %}

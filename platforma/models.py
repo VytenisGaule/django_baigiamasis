@@ -54,15 +54,67 @@ class HSTariff(models.Model):
 class Distributor(models.Model):
     distributor_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='distributor',
                                             limit_choices_to={'groups__name': 'distributor'})
+    avatar = models.ImageField(default='profile_pics/default.png', upload_to='profile_pics')
     company_name = models.CharField(max_length=255)
+    registration_code = models.CharField(max_length=20, default='')
     address = models.CharField(max_length=1000)
     about = models.CharField(max_length=1000, null=True, blank=True)
 
     class Meta:
         ordering = ['company_name']
         permissions = [
-            ("can_edit_items", "Can edit owned items"),
+            ('can_edit_items', 'Can edit owned items'),
         ]
 
     def __str__(self):
         return f'{self.company_name}'
+
+
+class Forwarder(models.Model):
+    forwarder_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='forwarder',
+                                          limit_choices_to={'groups__name': 'forwarder'})
+    avatar = models.ImageField(default='profile_pics/default.png', upload_to='profile_pics')
+    company_name = models.CharField(max_length=255)
+    registration_code = models.CharField(max_length=20, default='')
+    address = models.CharField(max_length=1000)
+    about = models.CharField(max_length=1000, null=True, blank=True)
+
+    class Meta:
+        ordering = ['company_name']
+        permissions = [
+            ('can_edit_packages', 'Can edit owned packages'),
+        ]
+
+    def __str__(self):
+        return f'{self.company_name}'
+
+
+class Customer(models.Model):
+    customer_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer',
+                                         limit_choices_to={'groups__name': 'customer'})
+    avatar = models.ImageField(default='profile_pics/default.png', upload_to='profile_pics')
+    name = models.CharField(max_length=100)
+    address = models.CharField(max_length=1000)
+
+    LOCATION_REGION = (
+        ('Central Europe', 'Bulgaria, Czech Republic, Romania, Slovakia'),
+        ('Northern Europe', 'Denmark, Finland, Ireland, Sweden'),
+        ('Southern Europe', 'Croatia, Greece, Italy, Portugal, Spain'),
+        ('Western Europe', 'Austria, Belgium, France, Germany, Netherlands, Switzerland'),
+        ('Eastern Europe', 'Estonia, Latvia, Lithuania, Poland')
+    )
+
+    region = models.CharField(
+        "Region",
+        max_length=20,
+        choices=LOCATION_REGION,
+        blank=True,
+        default='Northern Europe',
+        help_text='Location of customer to determine delivery expences'
+    )
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f'{self.name}'

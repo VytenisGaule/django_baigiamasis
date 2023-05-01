@@ -1,0 +1,8 @@
+{% extends "base.html" %} {% block content %}
+
+<p>Turėtų būti prikėjų sąrašas</p>
+{% for customer_obj in customer_list %}
+<li><a href="kazkas"> {{ customer_obj.customer_user }} - {{ customer_obj.name }} </a></li>
+{% endfor %}
+
+{% endblock %}

@@ -10,8 +10,8 @@ from django.contrib.auth.decorators import login_required
 
 from django.http import HttpResponse
 
-from .models import Origin, HScode, HSTariff, Distributor
-from .forms import UserUpdateForm, DistributorUpdateForm
+from .models import Origin, HScode, HSTariff, Distributor, Forwarder, Customer
+from .forms import UserUpdateForm, DistributorUpdateForm, ForwarderUpdateForm, CustomerUpdateForm
 
 
 def index(request):
@@ -30,6 +30,29 @@ class DistributorDetailView(generic.DetailView):
     template_name = 'distributor_detail_html'
 
 
+class ForwarderListView(generic.ListView):
+    model = Forwarder
+    template_name = 'forwarder_list.html'
+    context_object_name = 'forwarder_list'
+
+
+class ForwarderDetailView(generic.DetailView):
+    model = Forwarder
+    template_name = 'forwarder_detail_html'
+
+
+class CustomerListView(generic.ListView):
+    model = Customer
+    template_name = 'customer_list.html'
+    context_object_name = 'customer_list'
+
+
+class CustomerDetailView(generic.DetailView):
+    model = Customer
+    template_name = 'customer_detail_html'
+
+
+"""reikės stipresnių passwordų"""
 @csrf_protect
 def register(request):
     if request.method == 'POST':
@@ -56,21 +79,34 @@ def register(request):
 
 @login_required
 def profilis(request):
-    if request.method == "POST":
-        u_form = UserUpdateForm(request.POST, instance=request.user)
-        d_form = DistributorUpdateForm(request.POST, instance=request.user.distributor_user)
-        if u_form.is_valid() and d_form.is_valid():
-            u_form.save()
-            d_form.save()
-            messages.success(request, f"Profilis atnaujintas")
-            return redirect('profilis_endpoint')
+    user = request.user
+    if user.groups.filter(name='distributor').exists():
+        profile = user.distributor
+        form_class = DistributorUpdateForm
+    elif user.groups.filter(name='forwarder').exists():
+        profile = user.forwarder
+        form_class = ForwarderUpdateForm
+    elif user.groups.filter(name='customer').exists():
+        profile = user.customer
+        form_class = CustomerUpdateForm
     else:
-        u_form = UserUpdateForm(instance=request.user)
-        d_form = DistributorUpdateForm(instance=request.user.distributor_user)
+        raise Http404
+
+    if request.method == "POST":
+        u_form = UserUpdateForm(request.POST, instance=user)
+        profile_form = form_class(request.POST, instance=profile)
+        if u_form.is_valid() and profile_form.is_valid():
+            u_form.save()
+            profile_form.save()
+            messages.success(request, f"Profilis atnaujintas")
+            return redirect('profile_endpoint')
+    else:
+        u_form = UserUpdateForm(instance=user)
+        profile_form = form_class(instance=profile)
 
     data = {
         'u_form_cntx': u_form,
-        'd_form_cntx': d_form,
+        'profile_form_cntx': profile_form,
     }
 
     return render(request, "profilis.html", context=data)
