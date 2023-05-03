@@ -80,10 +80,10 @@ class Item(models.Model):
     gross_weight = models.DecimalField('Gross Weight', default=Decimal('0.000'), max_digits=6, decimal_places=3)
     volume = models.DecimalField('Volume', default=Decimal('0.00000'), max_digits=6, decimal_places=5)
     hs_tariff_id = models.ForeignKey(HSTariff, on_delete=models.PROTECT)
-    distributor_id = models.ForeignKey(Distributor, on_delete=models.SET_NULL, null=True)
+    distributor = models.ForeignKey(Distributor, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        ordering = ['distributor_id', 'name']
+        ordering = ['distributor', 'name']
 
     def __str__(self):
         return f'{self.name}, {self.price} EUR'
@@ -163,38 +163,66 @@ class Customer(models.Model):
         return f'{self.name}'
 
 
-# class ShoppingCart(models.Model):
-#     customer_id = models.ForeignKey(Customer, on_delete=models.CASCADE)
-#     distributor_id = models.ForeignKey(Distributor, on_delete=models.CASCADE)
-#     items = models.ManyToManyField('Item')
-#     created_at = models.DateTimeField(auto_now_add=True)
-#
-#     @property
-#     def item_price(self):
-#         return sum(item.price for item in self.items.all() if item.distributor == self.distributor_id)
-#
-#     @property
-#     def cart_delivery_type(self):
-#         contract_delivery = ContractDelivery.objects.filter(distributor_id=self.distributor_id).first()
-#         if contract_delivery:
-#             return contract_delivery.delivery
-#         else:
-#             return None
-#
-#     def delivery_price(self):
-#         # Items of one distributor
-#         items = self.items.filter(distributor=self.distributor_id)
-#
-#         # Total weight and volume
-#         total_weight = sum(item.gross_weight for item in items)
-#         total_volume = sum(item.volume for item in items)
-#
-#         # Delivery price based on total weight or volume, whatever is more
-#         contract_delivery = ContractDelivery.objects.filter(distributor_id=self.distributor_id).first()
-#         if not contract_delivery:
-#             return None
-#         if total_weight > total_volume * 1000:
-#             chargeable_weight = total_weight
-#         else:
-#             chargeable_weight = total_volume * 1000
-#         return chargeable_weight * contract_delivery.freight_cost_vkg
+class ShoppingCart(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.customer} - {self.distributor}'
+
+    @property
+    def total_items(self):
+        return sum(item_obj.quantity for item_obj in self.shoppingcartitem_set.all())
+
+    @property
+    def items_price(self):
+        return sum(item_obj.subtotal for item_obj in self.shoppingcartitem_set.all())
+
+    @property
+    def delivery_weight(self):
+        return sum(item_obj.weight for item_obj in self.shoppingcartitem_set.all())
+
+    @property
+    def cart_delivery_type(self):
+        if self.delivery_weight:
+            contract_delivery = ContractDelivery.objects.filter(distributor_id=self.distributor).first()
+            return contract_delivery.delivery if contract_delivery else None
+        else:
+            return None
+
+    @property
+    def delivery_price(self):
+        if self.delivery_weight and self.distributor.contractdelivery_set.exists():
+            contract_delivery = self.distributor.contractdelivery_set.first()
+            freight_cost = self.delivery_weight * contract_delivery.freight_cost_vkg
+            return freight_cost
+        else:
+            return None
+
+
+class ShoppingCartItem(models.Model):
+    cart = models.ForeignKey(ShoppingCart, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('cart', 'item')
+
+    @property
+    def subtotal(self):
+        return self.item.price * self.quantity
+
+    # noinspection PyTypeChecker
+    @property
+    def weight(self):
+        gross_weight = self.item.gross_weight
+        volume = self.item.volume
+        if gross_weight and volume:
+            return max(gross_weight, volume * 1000) * self.quantity
+        elif gross_weight:
+            return gross_weight * self.quantity
+        elif volume:
+            return volume * 1000 * self.quantity
+        else:
+            return 0

@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Origin, HScode, HSTariff, Item, Distributor, Forwarder, Customer, ContractDelivery
+from .models import Origin, HScode, HSTariff, Item, Distributor, Forwarder, Customer, ContractDelivery, \
+    ShoppingCart, ShoppingCartItem
 
 
 class OriginAdmin(admin.ModelAdmin):
@@ -37,6 +38,15 @@ class ContractDeliveryAdmin(admin.ModelAdmin):
     list_display = ('delivery', 'region', 'freight_cost_vkg', 'distributor_id', 'forwarder_id')
 
 
+class ShoppingCartAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'customer', 'distributor', 'total_items', 'items_price', 'delivery_weight',
+                    'cart_delivery_type', 'delivery_price')
+
+
+class ShoppingCartItemAdmin(admin.ModelAdmin):
+    list_display = ('cart', 'item', 'quantity')
+
+
 admin.site.register(Origin, OriginAdmin)
 admin.site.register(HScode, HScodeAdmin)
 admin.site.register(HSTariff, HSTariffAdmin)
@@ -45,3 +55,5 @@ admin.site.register(Distributor, DistributorAdmin)
 admin.site.register(Forwarder, ForwarderAdmin)
 admin.site.register(Customer, CustomerAdmin)
 admin.site.register(ContractDelivery, ContractDeliveryAdmin)
+admin.site.register(ShoppingCart, ShoppingCartAdmin)
+admin.site.register(ShoppingCartItem, ShoppingCartItemAdmin)

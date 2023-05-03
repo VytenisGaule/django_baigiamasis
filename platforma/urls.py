@@ -10,6 +10,7 @@ urlpatterns = [
     path('forwarders/<int:forwarder_id>', views.ForwarderDetailView.as_view(), name='forwarder_endpoint'),
     path('customers/', views.CustomerListView.as_view(), name='customers_endpoint'),
     path('customers/<int:forwarder_id>', views.CustomerDetailView.as_view(), name='customer_endpoint'),
+    path('search/', views.search, name='search_endpoint'),
 ]
 
 urlpatterns = urlpatterns + [

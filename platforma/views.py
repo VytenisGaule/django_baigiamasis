@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.views import generic
 from django.db.models import Q
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_protect
@@ -122,3 +122,23 @@ def profilis(request):
     }
 
     return render(request, "profilis.html", context=data)
+
+
+def search(request):
+    query_text = request.GET.get('search_text')
+    if query_text:
+        query_result = Item.objects.filter(
+            Q(name__icontains=query_text) |
+            Q(description__icontains=query_text) |
+            Q(distributor__company_name__icontains=query_text) |
+            Q(distributor__about__icontains=query_text) |
+            Q(distributor__distributor_user__username__icontains=query_text)
+        )
+        paginator = Paginator(query_result, 6)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+    else:
+        query_result = []
+        page_obj = None
+    data = {'query_result_cntx': query_result, 'page_obj': page_obj, 'query_text': query_text}
+    return render(request, 'search.html', context=data)
