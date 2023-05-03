@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.http import HttpResponse
 
-from .models import Origin, HScode, HSTariff, Distributor, Forwarder, Customer
+from .models import Origin, HScode, HSTariff, Distributor, Forwarder, Customer, Item
 from .forms import UserUpdateForm, DistributorUpdateForm, ForwarderUpdateForm, CustomerUpdateForm
 
 
@@ -27,7 +27,7 @@ class DistributorListView(generic.ListView):
 
 class DistributorDetailView(generic.DetailView):
     model = Distributor
-    template_name = 'distributor_detail_html'
+    template_name = 'distributor_detail.html'
 
 
 class ForwarderListView(generic.ListView):
@@ -38,7 +38,7 @@ class ForwarderListView(generic.ListView):
 
 class ForwarderDetailView(generic.DetailView):
     model = Forwarder
-    template_name = 'forwarder_detail_html'
+    template_name = 'forwarder_detail.html'
 
 
 class CustomerListView(generic.ListView):
@@ -49,7 +49,19 @@ class CustomerListView(generic.ListView):
 
 class CustomerDetailView(generic.DetailView):
     model = Customer
-    template_name = 'customer_detail_html'
+    template_name = 'customer_detail.html'
+
+
+class ItemListView(generic.ListView):
+    model = Item
+    paginate_by = 12
+    template_name = 'item_list.html'
+    context_object_name = 'item_list'
+
+
+class ItemDetailView(generic.DetailView):
+    model = Item
+    template_name = 'item_detail.html'
 
 
 """reikės stipresnių passwordų"""
@@ -94,7 +106,7 @@ def profilis(request):
 
     if request.method == "POST":
         u_form = UserUpdateForm(request.POST, instance=user)
-        profile_form = form_class(request.POST, instance=profile)
+        profile_form = form_class(request.POST, request.FILES, instance=profile)
         if u_form.is_valid() and profile_form.is_valid():
             u_form.save()
             profile_form.save()

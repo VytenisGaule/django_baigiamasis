@@ -13,37 +13,40 @@
   height: 60px;
 }
 h1 {
-  background-color: LightCyan;
+  background-color: Beige;
   font-size: 3rem;
   font-family: Trebuchet MS, sans-serif;
 }
 h2 {
-  background-color: LightCyan;
+  background-color: Beige;
 }
 h3 {
-  background-color: LightCyan;
+  background-color: Beige;
 }
 h4 {
-  background-color: LightCyan;
+  background-color: Beige;
 }
 h5 {
-  background-color: LightCyan;
+  background-color: Beige;
 }
 h6 {
-  background-color: LightCyan;
+  background-color: Beige;
 }
 p {
-  background-color: lightyellow;
+  background-color: Beige;
 }
 li {
   background-color: lightyellow;
 }
 a {
-  background-color: lightyellow;
+  background-color: Beige;
   font-style: italic;
 }
 body {
   background-color: lightyellow;
+}
+.card {
+  width: 200px;
 }
 .card-body {
   background-color: Beige;

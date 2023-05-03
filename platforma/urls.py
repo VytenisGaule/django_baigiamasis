@@ -3,7 +3,6 @@ from . import views
 
 
 urlpatterns = [
-    path('', views.index, name='index_endpoint'),
     path('profile/', views.profilis, name='profile_endpoint'),
     path('distributors/', views.DistributorListView.as_view(), name='distributors_endpoint'),
     path('distributors/<int:distributor_id>', views.DistributorDetailView.as_view(), name='distributor_endpoint'),
@@ -14,6 +13,12 @@ urlpatterns = [
 ]
 
 urlpatterns = urlpatterns + [
-    path("accounts/", include('django.contrib.auth.urls')),
-    path("accounts/register/", views.register, name="register_endpoint"),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('accounts/register/', views.register, name="register_endpoint"),
+]
+
+"""Customer views"""
+urlpatterns = urlpatterns + [
+    path('', views.ItemListView.as_view(), name='items_endpoint'),
+    path('<int:pk>', views.ItemDetailView.as_view(), name='item_endpoint'),
 ]
