@@ -112,7 +112,7 @@ class ContractDelivery(models.Model):
     DELIVERY_TYPES = (
         ('ee', 'Economy express'),
         ('ed', 'Express delivery'),
-        ('dp', 'Drop off/pick up points')
+        ('dp', 'Drop off/pick up')
     )
     delivery = models.CharField("Delivery", max_length=2, choices=DELIVERY_TYPES, help_text='Freight service')
     DELIVERY_REGION_LOCATION = (
@@ -195,7 +195,7 @@ class ShoppingCart(models.Model):
     def delivery_price(self):
         if self.delivery_weight and self.distributor.contractdelivery_set.exists():
             contract_delivery = self.distributor.contractdelivery_set.first()
-            freight_cost = self.delivery_weight * contract_delivery.freight_cost_vkg
+            freight_cost = round(self.delivery_weight * contract_delivery.freight_cost_vkg, 2)
             return freight_cost
         else:
             return None

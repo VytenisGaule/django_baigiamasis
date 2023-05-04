@@ -1,6 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
-
-<p>Konkreti prekė</p>
-
+{% load static %}
+<style>
+  .item-container {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .item-image {
+    max-width: 50%;
+    height: auto;
+  }
+  .item-details {
+    flex: 1;
+    margin-left: 20px;
+  }
+  .item-details h4 {
+    margin-top: 0;
+  }
+</style>
+<div class="item-container">
+  {% if item.photo %}
+  <img src="{{ item.photo.url}}" class="item-image">
+  {% else %}
+  <img src="{% static 'img/no-image.png' %}" class="item-image">
+  {% endif %}
+  <div class="item-details">
+    <h4><strong>{{ item.name }}</strong></h4>
+    <hr>
+    <p class="text-muted">{{ item.description }}</p>
+    <p class="text-muted">Weight {{ item.gross_weight }} kg </p>
+    <p class="text-muted">Price {{ item.price }} EUR </p>
+    <p class="text-muted">Seller {{ item.distributor.company_name }} </p>
+    
+    {% for group in user.groups.all %}
+      {% if group.name == 'customer' %}
+      <a class="nav-link" href="">
+      <svg fill="#000000" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
+                   width="28px" height="28px" viewBox="0 0 509.49 509.49"
+                   xml:space="preserve">
+        <g>
+          <g>
+            <rect x="255.51" y="236.487" width="113.22" height="59.882"/>
+            <polygon points="224.91,135.514 132.743,135.514 139.597,205.891 224.91,205.891 		"/>
+            <polygon points="224.91,296.369 224.91,236.491 142.578,236.491 148.41,296.369 		"/>
+            <polygon points="224.91,45.029 123.93,45.029 129.762,104.914 224.91,104.914 		"/>
+            <polygon points="399.33,296.369 460.529,296.369 472.195,236.491 399.33,236.491 		"/>
+            <rect x="255.51" y="45.029" width="113.22" height="59.881"/>
+            <rect x="255.51" y="135.514" width="113.22" height="70.377"/>
+            <polygon points="399.33,104.914 497.826,104.914 509.49,45.029 399.33,45.029 		"/>
+            <polygon points="399.33,205.891 478.156,205.891 491.865,135.514 399.33,135.514 		"/>
+            <polygon points="92.122,29.729 0,29.729 0,60.33 63.939,60.33 88.419,357.571 460.529,357.571 460.529,326.972 116.602,326.972
+              "/>
+            <circle cx="136.935" cy="433.096" r="46.665"/>
+            <circle cx="404.686" cy="433.096" r="46.665"/>
+          </g>
+        </g>
+        </svg>
+      Add to cart</a>
+      {% endif %}
+    {% endfor %}
+    
+  </div>
+</div>
 {% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+{% load static %}
+<style>
+  .item-container {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .item-image {
+    max-width: 100px;
+    height: auto;
+  }
+  .item-details {
+    flex: 1;
+    margin-left: 20px;
+  }
+  .item-details h4 {
+    margin-top: 0;
+  }
+</style>
+{% if shoppingcartitem_list %}
+  {% for cart_obj in shoppingcartitem_list %}
+    <div class="item-container">
+      {% if cart_obj.item.photo %}
+      <img src="{{ cart_obj.item.photo.url}}" class="card-img-top item-image">
+      {% else %}
+      <img src="{% static 'img/no-image.png' %}" class="card-img- item-image">
+      {%endif%}
+      <div class="item-details">
+        <p><span style="font-size: 20px;"><b> {{ cart_obj.item.name }} </b></span></p>
+          <form action="{% url 'update_cartitem_endpoint' customer_id=request.user.customer.id cart_id=cart_obj.cart.id pk=cart_obj.pk %}" method="POST">
+            {% csrf_token %}
+            <div class="input-group mb-3" style="max-width: 170px;">
+              <div class="input-group-prepend">
+                <button type="submit" name="quantity" value="{{ cart_obj.quantity|add:'-1' }}" class="btn btn-outline-secondary">-</button>
+              </div>
+                <input type="number" name="q" value="{{ cart_obj.quantity }}" class="form-control" style="width: 100px;">
+              <div class="input-group-append">
+                <button type="submit" name="quantity" value="{{ cart_obj.quantity|add:'1' }}" class="btn btn-outline-secondary">+</button>
+              </div>
+            </div>
+          </form>
+        <p> {{ cart_obj.item.price }} EUR </p>
+      </div>
+    </div>
+    <hr>
+  {% endfor %}
+{% endif %}
+{% endblock %}

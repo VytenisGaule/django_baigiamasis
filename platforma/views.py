@@ -1,3 +1,5 @@
+from abc import ABC
+from django.urls import reverse_lazy
 from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.views import generic
 from django.db.models import Q
@@ -10,8 +12,10 @@ from django.contrib.auth.decorators import login_required
 
 from django.http import HttpResponse
 
-from .models import Origin, HScode, HSTariff, Distributor, Forwarder, Customer, Item
-from .forms import UserUpdateForm, DistributorUpdateForm, ForwarderUpdateForm, CustomerUpdateForm
+from .models import Origin, HScode, HSTariff, Distributor, Forwarder, Customer, Item, ShoppingCart, \
+    ShoppingCartItem
+from .forms import UserUpdateForm, DistributorUpdateForm, ForwarderUpdateForm, CustomerUpdateForm, \
+    ShoppingCartItemForm
 
 
 def index(request):
@@ -64,7 +68,135 @@ class ItemDetailView(generic.DetailView):
     template_name = 'item_detail.html'
 
 
+class ShoppingCartView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
+    model = ShoppingCart
+    template_name = 'customer_cart.html'
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        return customer.customer_user == user
+
+    def get_queryset(self):
+        customer_id = self.kwargs.get('customer_id')
+        return ShoppingCart.objects.filter(customer_id=customer_id)
+
+
+class ShoppingCartUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
+    model = ShoppingCart
+    fields = ['cart_delivery_type']
+    template_name = 'customer_cart.html'
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        return customer.customer_user == user
+
+    def get_queryset(self):
+        customer_id = self.kwargs.get('customer_id')
+        return ShoppingCart.objects.filter(customer_id=customer_id)
+
+    def post(self, request, customer_id, pk):
+        cart_obj = get_object_or_404(ShoppingCart, pk=pk)
+        form = ShoppingCartForm(request.POST, instance=cart_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Delivery type updated successfully')
+        else:
+            messages.error(request, f'Error updating delivery type')
+        return redirect('mycart_endpoint', customer_id=customer_id)
+
+
+class ShoppingCartItemView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
+    model = ShoppingCartItem
+    template_name = 'customer_cart_items.html'
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        cart_id = self.kwargs.get('cart_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        shopping_cart = get_object_or_404(ShoppingCart, id=cart_id, customer=customer)
+        return customer.customer_user == user and shopping_cart is not None
+
+    def get_queryset(self):
+        cart_id = self.kwargs.get('cart_id')
+        return ShoppingCartItem.objects.filter(cart_id=cart_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cart_id = self.kwargs.get('cart_id')
+        context['cart_obj'] = get_object_or_404(ShoppingCart, id=cart_id)
+        return context
+
+
+class ShoppingCartItemUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
+    model = ShoppingCartItem
+    fields = ['quantity']
+    template_name = 'customer_cart_items.html'
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        cart_id = self.kwargs.get('cart_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        shopping_cart = get_object_or_404(ShoppingCart, id=cart_id, customer=customer)
+        return customer.customer_user == user and shopping_cart is not None
+
+    def get_queryset(self):
+        cart_id = self.kwargs.get('cart_id')
+        return ShoppingCartItem.objects.filter(cart_id=cart_id)
+
+    def post(self, request, *args, **kwargs):
+        cart_item = self.get_object()
+        quantity = int(request.POST.get('quantity', cart_item.quantity))
+        if quantity > 0:
+            cart_item.quantity = quantity
+            cart_item.save()
+        else:
+            cart_item.delete()
+        return redirect('cartitem_endpoint', customer_id=self.kwargs['customer_id'], cart_id=self.kwargs['cart_id'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cart_id = self.kwargs.get('cart_id')
+        context['cart_obj'] = get_object_or_404(ShoppingCart, id=cart_id)
+        return context
+
+    def get_success_url(self):
+        customer_id = self.kwargs['customer_id']
+        cart_id = self.kwargs['cart_id']
+        return reverse_lazy('cartitem_endpoint', kwargs={'customer_id': customer_id, 'cart_id': cart_id})
+
+
+# class ShoppingCartItemDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView, ABC):
+#     model = ShoppingCartItem
+#     template_name = 'customer_cart_items.html'
+#     success_url = 'mycart/<int:customer_id>/<int:cart_id>/'
+#
+#     def test_func(self):
+#         user = self.request.user
+#         customer_id = self.kwargs.get('customer_id')
+#         cart_id = self.kwargs.get('cart_id')
+#         customer = get_object_or_404(Customer, id=customer_id)
+#         shopping_cart = get_object_or_404(ShoppingCart, id=cart_id, customer=customer)
+#         return customer.customer_user == user and shopping_cart is not None
+#
+#     def get_queryset(self):
+#         cart_id = self.kwargs.get('cart_id')
+#         return ShoppingCartItem.objects.filter(cart_id=cart_id)
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         cart_id = self.kwargs.get('cart_id')
+#         context['cart_obj'] = get_object_or_404(ShoppingCart, id=cart_id)
+#         return context
+
 """reikės stipresnių passwordų"""
+
+
 @csrf_protect
 def register(request):
     if request.method == 'POST':
@@ -134,7 +266,7 @@ def search(request):
             Q(distributor__about__icontains=query_text) |
             Q(distributor__distributor_user__username__icontains=query_text)
         )
-        paginator = Paginator(query_result, 6)
+        paginator = Paginator(query_result, 12)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
     else:

@@ -9,7 +9,7 @@
     <a href="?page={{ page_obj.previous_page_number }}">&lt&lt</a>
     {% endif %}
     <span class="current">
-      puslapis {{ page_obj.number }} iš {{ page_obj.paginator.num_pages }}
+      page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
     </span>
     {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}">&gt&gt</a>
@@ -32,7 +32,7 @@
           <h6 class="card-subtitle mb-2 text-muted"><a href="{% url 'item_endpoint' item_obj.pk %}">{{ item_obj.name }}</a></h6>
           <p> {{ item_obj.name }} - {{ item_obj.price }} EUR </p>
         </div>
-          
+        
       </div>
     </div>
   {% endfor %}
