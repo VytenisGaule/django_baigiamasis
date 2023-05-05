@@ -77,9 +77,44 @@ class ShoppingCartView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView
         customer = get_object_or_404(Customer, id=customer_id)
         return customer.customer_user == user
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        customer_id = self.kwargs.get('customer_id')
+        carts = ShoppingCart.objects.filter(customer_id=customer_id).all()
+        if all(cart.items_price and cart.delivery_price for cart in carts):
+            checkout = sum(cart.items_price + cart.delivery_price + cart.duty for cart in carts)
+        else:
+            checkout = None
+        context['checkout'] = checkout
+        return context
+
     def get_queryset(self):
         customer_id = self.kwargs.get('customer_id')
         return ShoppingCart.objects.filter(customer_id=customer_id)
+
+
+class AddToCartView(LoginRequiredMixin, generic.View):
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        return customer.customer_user == user
+
+    @staticmethod
+    def get(request, item_id, distributor_id):
+        item = Item.objects.get(pk=item_id)
+        user = request.user
+        cart = ShoppingCart.objects.filter(customer=user.customer, distributor=item.distributor).first()
+        if not cart:
+            cart = ShoppingCart.objects.create(customer=user.customer, distributor=item.distributor)
+        cart_item = ShoppingCartItem.objects.filter(cart=cart, item=item).first()
+        if cart_item:
+            cart_item.quantity += 1
+            cart_item.save()
+        else:
+            ShoppingCartItem.objects.create(cart=cart, item=item)
+        return redirect('mycart_endpoint', customer_id=user.customer.id)
 
 
 class ShoppingCartUpdateDeliveryView(generic.View):
@@ -195,29 +230,6 @@ class ShoppingCartItemUpdateView(LoginRequiredMixin, UserPassesTestMixin, generi
         cart_id = self.kwargs['cart_id']
         return reverse_lazy('cartitem_endpoint', kwargs={'customer_id': customer_id, 'cart_id': cart_id})
 
-
-# class ShoppingCartItemDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView, ABC):
-#     model = ShoppingCartItem
-#     template_name = 'customer_cart_items.html'
-#     success_url = 'mycart/<int:customer_id>/<int:cart_id>/'
-#
-#     def test_func(self):
-#         user = self.request.user
-#         customer_id = self.kwargs.get('customer_id')
-#         cart_id = self.kwargs.get('cart_id')
-#         customer = get_object_or_404(Customer, id=customer_id)
-#         shopping_cart = get_object_or_404(ShoppingCart, id=cart_id, customer=customer)
-#         return customer.customer_user == user and shopping_cart is not None
-#
-#     def get_queryset(self):
-#         cart_id = self.kwargs.get('cart_id')
-#         return ShoppingCartItem.objects.filter(cart_id=cart_id)
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         cart_id = self.kwargs.get('cart_id')
-#         context['cart_obj'] = get_object_or_404(ShoppingCart, id=cart_id)
-#         return context
 
 """reikės stipresnių passwordų"""
 

@@ -3,32 +3,44 @@
 {% csrf_token %}
 <img class="rounded-circle" src="{{ user.profilis.nuotrauka.url }}">
 {% if shoppingcart_list %}
-<h4>Carts from different distributors will be issued separately</h4>
-{% for cart_obj in shoppingcart_list %}
-  <p><span style="font-size: 20px;"><b>{{ cart_obj.distributor }}:</b></span></p>
-  <p>  items - {{ cart_obj.total_items }} pcs.;</p>
-  <p>  price - {{ cart_obj.items_price }} EUR;</p>
-  <p>  freight cost - {{ cart_obj.delivery_price }} EUR; </p>
-  <a class="btn btn-sm btn-primary"
-     href="{% url 'cartitem_endpoint' customer_id=request.user.customer.id cart_id=cart_obj.id %}" role="button">
-      Cart item list
-  </a>
-  <a class="btn btn-sm btn-primary" href="{% url 'delivery_endpoint' customer_id=request.user.customer.id pk=cart_obj.pk %}" role="button">
-    
-    {% if cart_obj.cart_delivery_type == 'ee' %}
-      Economy express
-    {% elif cart_obj.cart_delivery_type == 'ed' %}
-      Express delivery
-    {% elif cart_obj.cart_delivery_type == 'dp' %}
-      Drop off/pick up
-    {% else %}
-      No delivery type set
+  <h4>Carts from different distributors will be issued separately</h4>
+  {% for cart_obj in shoppingcart_list %}
+    <p><span style="font-size: 20px;"><b>{{ cart_obj.distributor }}:</b></span></p>
+    <p>  items - {{ cart_obj.total_items }} pcs.;</p>
+    <p>  price - {{ cart_obj.items_price }} EUR;</p>
+    <p>  freight cost - {{ cart_obj.delivery_price }} EUR; </p>
+    {% if cart_obj.duty > 0 %}
+      <p>  duty - {{ cart_obj.duty }} EUR; </p>
     {% endif %}
+    <a class="btn btn-sm btn-primary"
+       href="{% url 'cartitem_endpoint' customer_id=request.user.customer.id cart_id=cart_obj.id %}" role="button">
+        Cart item list
+    </a>
+    <a class="btn btn-sm btn-primary" href="{% url 'delivery_endpoint' customer_id=request.user.customer.id pk=cart_obj.pk %}" role="button">
+      {% if cart_obj.cart_delivery_type == 'ee' %}
+        Economy express
+      {% elif cart_obj.cart_delivery_type == 'ed' %}
+        Express delivery
+      {% elif cart_obj.cart_delivery_type == 'dp' %}
+        Drop off/pick up
+      {% else %}
+        No delivery type set
+      {% endif %}
+    </a>
+    <a class="btn btn-sm btn-danger" href="{% url 'cart_delete_endpoint' customer_id=request.user.customer.id pk=cart_obj.id %}" role="button">
+        Remove cart
+    </a>
+  {% endfor %}
+  <hr>
+  {% if checkout %}
+  <a class="btn btn-lg btn-block btn-success" href="" role="button">
+      Checkout {{ checkout }} EUR
   </a>
-  <a class="btn btn-sm btn-danger" href="{% url 'cart_delete_endpoint' customer_id=request.user.customer.id pk=cart_obj.id %}" role="button">
-      Delete cart
+  {% else %}
+  <a class="btn btn-lg btn-block btn-danger" href="" role="button">
+      Please, choose delivery method for all carts
   </a>
-{% endfor %}
+  {% endif %}
 {% else %}
 <h4> Shopping cart is empty </h4>
 {% endif %}

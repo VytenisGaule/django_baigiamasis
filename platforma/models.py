@@ -1,4 +1,4 @@
-import uuid
+import math
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -13,6 +13,8 @@ from decimal import Decimal
 
 
 class Origin(models.Model):
+    """Prekės kilmės šalis nurodoma etiketėje, nebūtinai sutampa su distributoriaus lokacija"""
+    """Gali būti kad Filipinų distributorius parduoda Turkiškos kilmės prekę."""
     origin_code = models.CharField('Origin code', max_length=5, help_text='GB - United Kingdom, US, etc')
     origin_name = models.CharField('Origin', max_length=100, help_text='Country, group, or arrangement')
 
@@ -24,6 +26,7 @@ class Origin(models.Model):
 
 
 class HScode(models.Model):
+    """HS kodai - https://litarweb.lrmuitine.lt/taric/web/browsetariff_LT?Year=2023&Month=04&Day=23"""
     hs_code = models.CharField(primary_key=True, max_length=10, validators=[RegexValidator(regex=r'^\d{10}$')],
                                help_text="HS code must contain exactly 10 digits")
     hs_description = models.TextField('Description', max_length=1000, null=True, blank=True,
@@ -39,6 +42,7 @@ class HScode(models.Model):
 
 
 class HSTariff(models.Model):
+    """Muito tarifas priklauso nuo HS kodo ir prekės kilmės šalies"""
     origin_id = models.ForeignKey(Origin, on_delete=models.CASCADE)
     hs_code_id = models.ForeignKey(HScode, on_delete=models.CASCADE)
     tariff_rate = models.DecimalField(max_digits=5, decimal_places=2, help_text="Tariff rate of HS code and origin")
@@ -90,6 +94,7 @@ class Item(models.Model):
 
 
 class Forwarder(models.Model):
+    """Ekspeditorius yra nebūtinai vežėjas. Įprastai ekspeditorius dirba su kryptimi (pvz. LT-UK auto, LT-DE air)"""
     forwarder_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='forwarder',
                                           limit_choices_to={'groups__name': 'forwarder'})
     avatar = models.ImageField(default='profile_pics/default.png', upload_to='profile_pics')
@@ -109,6 +114,9 @@ class Forwarder(models.Model):
 
 
 class ContractDelivery(models.Model):
+    """Skirtingi ekspeditoriai taiko skirtingas pristatymo paslaugas (skirtingi greičiai, metodai)
+    Skirtingi vežėjai dirba skirtingomis kryptimis. Jei vežėjas neturi oro linijos iš Kanados į EU -
+    tada jis nepasiųlys Kanados gamintojui 'ed' paslaugos"""
     DELIVERY_TYPES = (
         ('ee', 'Economy express'),
         ('ed', 'Express delivery'),
@@ -133,6 +141,8 @@ class ContractDelivery(models.Model):
 
 
 class Customer(models.Model):
+    """Nuo gyvvenamosios vietos regiono priklauso siuntų pristatymo kainos. Įsivaizduokime kad pvz.
+    TNT turi siuntų paskirstymo terminalus Liege, arba Madride - ir ten paskirstomos siuntos iš JAV """
     customer_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer',
                                          limit_choices_to={'groups__name': 'customer'})
     avatar = models.ImageField(default='profile_pics/default.png', upload_to='profile_pics')
@@ -184,22 +194,35 @@ class ShoppingCart(models.Model):
     def delivery_weight(self):
         return sum(item_obj.weight for item_obj in self.shoppingcartitem_set.all())
 
+    """Transporto kaštų suma pagal kiekvienos prekės svorį arba tūrį krepšelyje"""
+    """Pagal pristatymo būdą (pvz. nuo paštomato į paštomatą, arba nuo durų iki durų, ir pan.)"""
+    """Ir gabenimo kainą iš gamintojo sandėlių iki konkretaus regiono, kuriame gyvena gavėjas"""
+
     @property
     def delivery_price(self):
         if not self.cart_delivery_type or not self.delivery_weight:
             return None
-
         contract_delivery = ContractDelivery.objects.filter(
             distributor_id=self.distributor.id,
             region=self.customer.region,
             delivery=self.cart_delivery_type
         ).first()
-
         if not contract_delivery:
             return None
-
         freight_cost = round(self.delivery_weight * contract_delivery.freight_cost_vkg, 2)
         return freight_cost
+
+    """muito mokesčiu apmokestinamos tos siuntos, kurių vertė viršija 150 eur. Naujas 2022m EU reglamentas """
+    """https://taxation-customs.ec.europa.eu/system/files/2022-11/Customs%20Guidance%20doc%20on%20LVC-Clean-20220915
+    .pdf"""
+
+    @property
+    def duty(self):
+        if self.items_price + self.delivery_price <= 150:
+            return 0
+        else:
+            return sum(math.ceil(item_obj.item.price * item_obj.item.hs_tariff_id.tariff_rate / 100)
+                       for item_obj in self.shoppingcartitem_set.all())
 
 
 class ShoppingCartItem(models.Model):
@@ -214,16 +237,19 @@ class ShoppingCartItem(models.Model):
     def subtotal(self):
         return self.item.price * self.quantity
 
+    """Siuntų kainą smulkių siuntų vežėjai įprastai skaičiuojama pagal tūrinį svorį."""
+    """Pavyzdžiuis jei lengva siunta supakuota didelėje dėžėje - kainą lemia tūris, ne svoris"""
+
     # noinspection PyTypeChecker
     @property
     def weight(self):
         gross_weight = self.item.gross_weight
         volume = self.item.volume
         if gross_weight and volume:
-            return max(gross_weight, volume * 1000) * self.quantity
+            return max(gross_weight, volume * 200) * self.quantity
         elif gross_weight:
             return gross_weight * self.quantity
         elif volume:
-            return volume * 1000 * self.quantity
+            return volume * 200 * self.quantity
         else:
             return 0
