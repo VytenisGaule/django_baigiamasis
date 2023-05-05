@@ -10,12 +10,11 @@ from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 
 from .models import Origin, HScode, HSTariff, Distributor, Forwarder, Customer, Item, ShoppingCart, \
-    ShoppingCartItem
-from .forms import UserUpdateForm, DistributorUpdateForm, ForwarderUpdateForm, CustomerUpdateForm, \
-    ShoppingCartItemForm
+    ShoppingCartItem, ContractDelivery
+from .forms import *
 
 
 def index(request):
@@ -83,30 +82,29 @@ class ShoppingCartView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView
         return ShoppingCart.objects.filter(customer_id=customer_id)
 
 
-class ShoppingCartUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
-    model = ShoppingCart
-    fields = ['cart_delivery_type']
-    template_name = 'customer_cart.html'
+class ShoppingCartUpdateDeliveryView(generic.View):
+    form_class = CartDeliveryForm
+    template_name = 'update_delivery.html'
 
-    def test_func(self):
-        user = self.request.user
-        customer_id = self.kwargs.get('customer_id')
-        customer = get_object_or_404(Customer, id=customer_id)
-        return customer.customer_user == user
+    def get(self, request, *args, **kwargs):
+        shopping_cart = get_object_or_404(ShoppingCart, pk=kwargs['pk'])
+        customer_region = shopping_cart.customer.region
+        form = self.form_class(distributor_id=shopping_cart.distributor.id)
+        delivery_types = []
+        for delivery_type in ContractDelivery.DELIVERY_TYPES:
+            if ContractDelivery.objects.filter(delivery=delivery_type[0], region=customer_region).exists():
+                delivery_types.append(delivery_type)
+        form.fields['delivery_type'].choices = delivery_types
+        return render(request, self.template_name, {'form': form})
 
-    def get_queryset(self):
-        customer_id = self.kwargs.get('customer_id')
-        return ShoppingCart.objects.filter(customer_id=customer_id)
-
-    def post(self, request, customer_id, pk):
-        cart_obj = get_object_or_404(ShoppingCart, pk=pk)
-        form = ShoppingCartForm(request.POST, instance=cart_obj)
+    def post(self, request, *args, **kwargs):
+        shopping_cart = get_object_or_404(ShoppingCart, pk=kwargs['pk'])
+        form = self.form_class(request.POST, distributor_id=shopping_cart.distributor.id)
         if form.is_valid():
-            form.save()
-            messages.success(request, f'Delivery type updated successfully')
-        else:
-            messages.error(request, f'Error updating delivery type')
-        return redirect('mycart_endpoint', customer_id=customer_id)
+            shopping_cart.cart_delivery_type = form.cleaned_data['delivery_type']
+            shopping_cart.save()
+            return HttpResponseRedirect(reverse('mycart_endpoint', kwargs={'customer_id': shopping_cart.customer.id}))
+        return render(request, self.template_name, {'form': form})
 
 
 class ShoppingCartItemView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):

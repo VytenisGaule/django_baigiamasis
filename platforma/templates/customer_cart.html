@@ -13,7 +13,8 @@
      href="{% url 'cartitem_endpoint' customer_id=request.user.customer.id cart_id=cart_obj.id %}" role="button">
       Cart item list
   </a>
-  <a class="btn btn-sm btn-primary" href="{% url 'update_mycart_endpoint' customer_id=request.user.customer.id pk=cart_obj.pk %}" role="button">
+  <a class="btn btn-sm btn-primary" href="{% url 'delivery_endpoint' customer_id=request.user.customer.id pk=cart_obj.pk %}" role="button">
+    
     {% if cart_obj.cart_delivery_type == 'ee' %}
       Economy express
     {% elif cart_obj.cart_delivery_type == 'ed' %}

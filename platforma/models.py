@@ -140,11 +140,11 @@ class Customer(models.Model):
     address = models.CharField(max_length=1000)
 
     LOCATION_REGION = (
-        ('Central Europe', 'Bulgaria, Czech Republic, Romania, Slovakia'),
-        ('Northern Europe', 'Denmark, Finland, Ireland, Sweden'),
-        ('Southern Europe', 'Croatia, Greece, Italy, Portugal, Spain'),
-        ('Western Europe', 'Austria, Belgium, France, Germany, Netherlands, Switzerland'),
-        ('Eastern Europe', 'Estonia, Latvia, Lithuania, Poland')
+        ('ce', 'Bulgaria, Czech Republic, Romania, Slovakia'),
+        ('ne', 'Denmark, Finland, Ireland, Sweden'),
+        ('se', 'Croatia, Greece, Italy, Portugal, Spain'),
+        ('we', 'Austria, Belgium, France, Germany, Netherlands, Switzerland'),
+        ('ee', 'Estonia, Latvia, Lithuania, Poland')
     )
 
     region = models.CharField(
@@ -167,6 +167,7 @@ class ShoppingCart(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+    _cart_delivery_type = models.CharField(max_length=2, blank=True)
 
     def __str__(self):
         return f'{self.customer} - {self.distributor}'
@@ -190,6 +191,11 @@ class ShoppingCart(models.Model):
             return contract_delivery.delivery if contract_delivery else None
         else:
             return None
+
+    @cart_delivery_type.setter
+    def cart_delivery_type(self, value):
+        self._cart_delivery_type = value
+        self.save()
 
     @property
     def delivery_price(self):

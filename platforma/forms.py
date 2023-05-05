@@ -1,4 +1,4 @@
-from .models import Distributor, Forwarder, Customer, ShoppingCart, ShoppingCartItem
+from .models import Distributor, Forwarder, Customer, ShoppingCartItem, ContractDelivery
 from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -36,18 +36,14 @@ class CustomerUpdateForm(forms.ModelForm):
         }
 
 
-class ShoppingCartForm(forms.ModelForm):
-    cart_delivery_type = forms.CharField(required=False)
-
-    class Meta:
-        model = ShoppingCart
-        fields = []
+class CartDeliveryForm(forms.Form):
+    delivery_type = forms.ChoiceField(choices=[])
 
     def __init__(self, *args, **kwargs):
+        distributor_id = kwargs.pop('distributor_id')
         super().__init__(*args, **kwargs)
-        instance = kwargs.get('instance')
-        if instance:
-            self.fields['cart_delivery_type'].initial = instance.cart_delivery_type
+        contract_delivery_choices = ContractDelivery.objects.filter(distributor_id=distributor_id).values_list('delivery', 'delivery')
+        self.fields['delivery_type'].choices = contract_delivery_choices
 
 
 class ShoppingCartItemForm(forms.ModelForm):
