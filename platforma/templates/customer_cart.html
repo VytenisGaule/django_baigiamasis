@@ -25,7 +25,7 @@
       No delivery type set
     {% endif %}
   </a>
-  <a class="btn btn-sm btn-danger" href="" role="button">
+  <a class="btn btn-sm btn-danger" href="{% url 'cart_delete_endpoint' customer_id=request.user.customer.id pk=cart_obj.id %}" role="button">
       Delete cart
   </a>
 {% endfor %}

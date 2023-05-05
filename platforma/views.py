@@ -92,8 +92,14 @@ class ShoppingCartUpdateDeliveryView(generic.View):
         form = self.form_class(distributor_id=shopping_cart.distributor.id)
         delivery_types = []
         for delivery_type in ContractDelivery.DELIVERY_TYPES:
-            if ContractDelivery.objects.filter(delivery=delivery_type[0], region=customer_region).exists():
-                delivery_types.append(delivery_type)
+            delivery_type_code = delivery_type[0]
+            contract_delivery = ContractDelivery.objects.filter(
+                distributor_id_id=shopping_cart.distributor_id,
+                region=shopping_cart.customer.region,
+                delivery=delivery_type_code
+            ).first()
+            if contract_delivery:
+                delivery_types.append((delivery_type_code, delivery_type[1]))
         form.fields['delivery_type'].choices = delivery_types
         return render(request, self.template_name, {'form': form})
 
@@ -105,6 +111,27 @@ class ShoppingCartUpdateDeliveryView(generic.View):
             shopping_cart.save()
             return HttpResponseRedirect(reverse('mycart_endpoint', kwargs={'customer_id': shopping_cart.customer.id}))
         return render(request, self.template_name, {'form': form})
+
+
+class ShoppingCartDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
+    model = ShoppingCart
+    template_name = 'customer_cart_delete.html'
+
+    def get(self, request, *args, **kwargs):
+        print(kwargs)  # This will print the URL parameters passed to the view
+        return super().get(request, *args, **kwargs)
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        cart_id = self.kwargs.get('pk')
+        customer = get_object_or_404(Customer, id=customer_id)
+        shopping_cart = get_object_or_404(ShoppingCart, id=cart_id, customer=customer)
+        return customer.customer_user == user and shopping_cart is not None
+
+    def get_success_url(self):
+        customer_id = self.kwargs.get('customer_id')
+        return reverse_lazy('mycart_endpoint', kwargs={'customer_id': customer_id})
 
 
 class ShoppingCartItemView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):

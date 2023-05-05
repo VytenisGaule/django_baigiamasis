@@ -167,7 +167,7 @@ class ShoppingCart(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
-    _cart_delivery_type = models.CharField(max_length=2, blank=True)
+    cart_delivery_type = models.CharField(max_length=2, blank=True)
 
     def __str__(self):
         return f'{self.customer} - {self.distributor}'
@@ -185,26 +185,21 @@ class ShoppingCart(models.Model):
         return sum(item_obj.weight for item_obj in self.shoppingcartitem_set.all())
 
     @property
-    def cart_delivery_type(self):
-        if self.delivery_weight:
-            contract_delivery = ContractDelivery.objects.filter(distributor_id=self.distributor).first()
-            return contract_delivery.delivery if contract_delivery else None
-        else:
-            return None
-
-    @cart_delivery_type.setter
-    def cart_delivery_type(self, value):
-        self._cart_delivery_type = value
-        self.save()
-
-    @property
     def delivery_price(self):
-        if self.delivery_weight and self.distributor.contractdelivery_set.exists():
-            contract_delivery = self.distributor.contractdelivery_set.first()
-            freight_cost = round(self.delivery_weight * contract_delivery.freight_cost_vkg, 2)
-            return freight_cost
-        else:
+        if not self.cart_delivery_type or not self.delivery_weight:
             return None
+
+        contract_delivery = ContractDelivery.objects.filter(
+            distributor_id=self.distributor.id,
+            region=self.customer.region,
+            delivery=self.cart_delivery_type
+        ).first()
+
+        if not contract_delivery:
+            return None
+
+        freight_cost = round(self.delivery_weight * contract_delivery.freight_cost_vkg, 2)
+        return freight_cost
 
 
 class ShoppingCartItem(models.Model):
