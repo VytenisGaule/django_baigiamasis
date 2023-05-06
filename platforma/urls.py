@@ -22,11 +22,16 @@ urlpatterns = urlpatterns + [
 
 """Customer views"""
 urlpatterns = urlpatterns + [
-    path('', views.ItemListView.as_view(), name='items_endpoint'),
-    path('<int:pk>', views.ItemDetailView.as_view(), name='item_endpoint'),
-    path('mycart/<int:customer_id>/', views.ShoppingCartView.as_view(), name='mycart_endpoint'),
-    path('mycart/add/<int:distributor_id>/<int:item_id>/', views.AddToCartView.as_view(), name='add_to_cart_endpoint'),
-    path('mycart/<int:customer_id>/<int:cart_id>/', views.ShoppingCartItemView.as_view(), name='cartitem_endpoint'),
+    path('', views.ItemListView.as_view(),
+         name='items_endpoint'),
+    path('<int:pk>', views.ItemDetailView.as_view(),
+         name='item_endpoint'),
+    path('mycart/<int:customer_id>/', views.ShoppingCartView.as_view(),
+         name='mycart_endpoint'),
+    path('mycart/add/<int:distributor_id>/<int:item_id>/', views.AddToCartView.as_view(),
+         name='add_to_cart_endpoint'),
+    path('mycart/<int:customer_id>/<int:cart_id>/', views.ShoppingCartItemView.as_view(),
+         name='cartitem_endpoint'),
     path('mycart/<int:customer_id>/<int:pk>/delivery/', views.ShoppingCartUpdateDeliveryView.as_view(),
          name='delivery_endpoint'),
     path('mycart/<int:customer_id>/<int:pk>/delete/', views.ShoppingCartDeleteView.as_view(),
@@ -37,6 +42,14 @@ urlpatterns = urlpatterns + [
 
 """Distributor views"""
 urlpatterns = urlpatterns + [
-    path('myitems/<int:distributor_id>/', views.ItemByDistributorListView.as_view(), name='distributor_items_endpoint'),
-    path('myitems/<int:distributor_id>/new', views.ItemByDistributorCreate.as_view(), name='distributor_new_item_endpoint'),
+    path('myitems/<int:distributor_id>/', views.ItemByDistributorListView.as_view(),
+         name='distributor_items_endpoint'),
+    path('myitems/<int:distributor_id>/new', views.ItemByDistributorCreate.as_view(),
+         name='distributor_new_item_endpoint'),
+    path('myitems/<int:distributor_id>/<int:pk>/edit', views.ItemByDistributorUpdate.as_view(),
+         name='distributor_edit_item_endpoint'),
+    path('myitems/<int:distributor_id>/<int:pk>/delete', views.ItemByDistributorDelete.as_view(),
+         name='distributor_delete_item_endpoint'),
+    path('myitems/<int:distributor_id>/<int:pk>/', views.ItemByDistributorView.as_view(),
+         name='distributor_item_endpoint'),
 ]

@@ -29,7 +29,10 @@
         <img src="{% static 'img/no-image.png' %}" class="card-img-">
         {%endif%}
         <div class="card-body">
-          <h6 class="card-subtitle mb-2 text-muted"><a href="{% url 'item_endpoint' item_obj.pk %}">{{ item_obj.name }}</a></h6>
+          <h6 class="card-subtitle mb-2 text-muted">
+            <a href="{% url 'distributor_item_endpoint' distributor_id=request.user.distributor.pk pk=item_obj.pk %}">{{ item_obj.name }}
+            </a>
+          </h6>
           <p> {{ item_obj.name }} - {{ item_obj.price }} EUR </p>
         </div>
         

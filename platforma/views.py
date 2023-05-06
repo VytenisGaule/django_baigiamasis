@@ -66,6 +66,13 @@ class ItemDetailView(generic.DetailView):
     model = Item
     template_name = 'item_detail.html'
 
+    """Jei prisijungęs vartotojas yra prekės savininkas - redirektina į distributoriaus vievs"""
+    def dispatch(self, request, *args, **kwargs):
+        item = self.get_object()
+        if request.user.is_authenticated and hasattr(request.user, 'distributor') and item.distributor == request.user.distributor:
+            return redirect('distributor_item_detail', distributor_id=request.user.distributor.pk, pk=item.pk)
+        return super().dispatch(request, *args, **kwargs)
+
 
 class ShoppingCartView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
     model = ShoppingCart
@@ -95,12 +102,6 @@ class ShoppingCartView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView
 
 class AddToCartView(LoginRequiredMixin, generic.View):
 
-    def test_func(self):
-        user = self.request.user
-        customer_id = self.kwargs.get('customer_id')
-        customer = get_object_or_404(Customer, id=customer_id)
-        return customer.customer_user == user
-
     @staticmethod
     def get(request, item_id, distributor_id):
         item = Item.objects.get(pk=item_id)
@@ -117,9 +118,15 @@ class AddToCartView(LoginRequiredMixin, generic.View):
         return redirect('mycart_endpoint', customer_id=user.customer.id)
 
 
-class ShoppingCartUpdateDeliveryView(generic.View):
+class ShoppingCartUpdateDeliveryView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
     form_class = CartDeliveryForm
     template_name = 'update_delivery.html'
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        return customer.customer_user == user
 
     def get(self, request, *args, **kwargs):
         shopping_cart = get_object_or_404(ShoppingCart, pk=kwargs['pk'])
@@ -267,6 +274,54 @@ class ItemByDistributorCreate(LoginRequiredMixin, UserPassesTestMixin, generic.C
     def get_success_url(self):
         distributor_id = self.kwargs.get('distributor_id')
         return reverse_lazy('distributor_items_endpoint', kwargs={'distributor_id': distributor_id})
+
+
+class ItemByDistributorUpdate(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
+    model = Item
+    template_name = 'distributor_edit_item.html'
+    form_class = DistributorItemCreateForm
+
+    def test_func(self):
+        user = self.request.user
+        distributor_id = self.kwargs.get('distributor_id')
+        distributor = get_object_or_404(Distributor, id=distributor_id)
+        return distributor.distributor_user == user
+
+    def get_form_kwargs(self):
+        """Perduodamas prisijungusio user objektas į forms.py"""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_success_url(self):
+        distributor_id = self.kwargs.get('distributor_id')
+        return reverse_lazy('distributor_items_endpoint', kwargs={'distributor_id': distributor_id})
+
+
+class ItemByDistributorDelete(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
+    model = Item
+    template_name = 'distributor_delete_item.html'
+
+    def test_func(self):
+        user = self.request.user
+        distributor_id = self.kwargs.get('distributor_id')
+        distributor = get_object_or_404(Distributor, id=distributor_id)
+        return distributor.distributor_user == user
+
+    def get_success_url(self):
+        distributor_id = self.kwargs.get('distributor_id')
+        return reverse_lazy('distributor_items_endpoint', kwargs={'distributor_id': distributor_id})
+
+
+class ItemByDistributorView(LoginRequiredMixin, UserPassesTestMixin, generic.DetailView):
+    model = Item
+    template_name = 'distributor_item_detail.html'
+
+    def test_func(self):
+        user = self.request.user
+        distributor_id = self.kwargs.get('distributor_id')
+        distributor = get_object_or_404(Distributor, id=distributor_id)
+        return distributor.distributor_user == user
 
 
 """reikės stipresnių passwordų"""
