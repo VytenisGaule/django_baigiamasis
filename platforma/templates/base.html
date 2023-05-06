@@ -67,13 +67,23 @@
     <div class="collapse navbar-collapse" id="navbarResponsive">
       <ul class="navbar-nav ml-auto">
         
+        
+        
         {% for group in user.groups.all %}
           {% if group.name == 'distributor' %}
           <li class="nav-item">
-            <a class="nav-link" href="">Distributor_templ</a>
+            <a class="nav-link" href="">Deliveries</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'distributor_new_item_endpoint' request.user.distributor.id %}">New Item</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'distributor_items_endpoint' request.user.distributor.id %}">My items</a>
           </li>
           {% endif %}
         {% endfor %}
+        
+        
         
         {% for group in user.groups.all %}
           {% if group.name == 'forwarder' %}

@@ -231,6 +231,44 @@ class ShoppingCartItemUpdateView(LoginRequiredMixin, UserPassesTestMixin, generi
         return reverse_lazy('cartitem_endpoint', kwargs={'customer_id': customer_id, 'cart_id': cart_id})
 
 
+class ItemByDistributorListView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
+    model = Item
+    paginate_by = 12
+    template_name = 'distributor_item_list.html'
+
+    def test_func(self):
+        user = self.request.user
+        distributor_id = self.kwargs.get('distributor_id')
+        distributor = get_object_or_404(Distributor, id=distributor_id)
+        return distributor.distributor_user == user
+
+    def get_queryset(self):
+        distributor = self.request.user.distributor
+        return Item.objects.filter(distributor=distributor)
+
+
+class ItemByDistributorCreate(LoginRequiredMixin, UserPassesTestMixin, generic.CreateView):
+    model = Item
+    template_name = 'distributor_new_item.html'
+    form_class = DistributorItemCreateForm
+
+    def test_func(self):
+        user = self.request.user
+        distributor_id = self.kwargs.get('distributor_id')
+        distributor = get_object_or_404(Distributor, id=distributor_id)
+        return distributor.distributor_user == user
+
+    def get_form_kwargs(self):
+        """Perduodamas prisijungusio user objektas į forms.py"""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_success_url(self):
+        distributor_id = self.kwargs.get('distributor_id')
+        return reverse_lazy('distributor_items_endpoint', kwargs={'distributor_id': distributor_id})
+
+
 """reikės stipresnių passwordų"""
 
 
