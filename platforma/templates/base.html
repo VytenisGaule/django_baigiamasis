@@ -66,6 +66,11 @@
     
     <div class="collapse navbar-collapse" id="navbarResponsive">
       <ul class="navbar-nav ml-auto">
+        
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'locations_endpoint' %}">Shipment locations</a>
+        </li>
+        
         {% for group in user.groups.all %}
           {% if group.name == 'distributor' %}
           <li class="nav-item">
@@ -80,7 +85,7 @@
         {% for group in user.groups.all %}
           {% if group.name == 'forwarder' %}
           <li class="nav-item">
-            <a class="nav-link" href="">Forwarder_templ</a>
+            <a class="nav-link" href="{% url 'forwarder_shipments_endpoint' request.user.forwarder.id %}">My shipments</a>
           </li>
           {% endif %}
         {% endfor %}
@@ -167,21 +172,6 @@
   {% block content %}{% endblock %}
 </div>
 
-<footer>
-  <p> useris == {{ user }}, visits == {{ num_visits_cntx }} times</p>
-  <p> grupė == {{ user.groups.all }} </p>
-  {% for group in user.groups.all %}
-      {% if group.name == 'distributors' %}
-          <p> distributorius </p>
-      {% endif %}
-      {% if group.name == 'forwarders' %}
-          <p> forwarders </p>
-      {% endif %}
-      {% if group.name == 'customers' %}
-          <p> customers </p>
-      {% endif %}
-  {% endfor %}
-</footer>
 <script
         src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
         integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"

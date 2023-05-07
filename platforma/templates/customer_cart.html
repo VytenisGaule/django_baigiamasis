@@ -33,7 +33,7 @@
   {% endfor %}
   <hr>
   {% if checkout %}
-  <a class="btn btn-lg btn-block btn-success" href="" role="button">
+  <a class="btn btn-lg btn-block btn-success" href="{% url 'purchase_cart_endpoint' customer_id=user.customer.id %}" role="button">
       Checkout {{ checkout }} EUR
   </a>
   {% else %}

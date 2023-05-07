@@ -2,7 +2,7 @@ import math
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator
 from datetime import datetime
 from tinymce.models import HTMLField
 from PIL import Image
@@ -79,10 +79,14 @@ class Item(models.Model):
     name = models.CharField('Name', max_length=100)
     description = models.CharField('Description', max_length=1000, help_text='Short description')
     photo = models.ImageField('Photo', upload_to="photos", default='photos/no_image.png')
-    price = models.DecimalField('Price', default=Decimal('0.00'), max_digits=5, decimal_places=2)
-    net_weight = models.DecimalField('Net Weight', default=Decimal('0.000'), max_digits=6, decimal_places=3)
-    gross_weight = models.DecimalField('Gross Weight', default=Decimal('0.000'), max_digits=6, decimal_places=3)
-    volume = models.DecimalField('Volume', default=Decimal('0.00000'), max_digits=6, decimal_places=5)
+    price = models.DecimalField('Price', default=Decimal('0.00'), max_digits=5, decimal_places=2,
+                                validators=[MinValueValidator(Decimal('0.00'))])
+    net_weight = models.DecimalField('Net Weight', default=Decimal('0.000'), max_digits=6, decimal_places=3,
+                                     validators=[MinValueValidator(Decimal('0.00'))])
+    gross_weight = models.DecimalField('Gross Weight', default=Decimal('0.000'), max_digits=6, decimal_places=3,
+                                       validators=[MinValueValidator(Decimal('0.00'))])
+    volume = models.DecimalField('Volume', default=Decimal('0.00000'), max_digits=6, decimal_places=5,
+                                 validators=[MinValueValidator(Decimal('0.00'))])
     hs_tariff_id = models.ForeignKey(HSTariff, on_delete=models.PROTECT)
     distributor = models.ForeignKey(Distributor, on_delete=models.SET_NULL, null=True)
 
@@ -253,3 +257,30 @@ class ShoppingCartItem(models.Model):
             return volume * 200 * self.quantity
         else:
             return 0
+
+
+class ShipmentManager(models.Manager):
+    def at_location(self, location):
+        return self.filter(location=location)
+
+
+class Shipment(models.Model):
+    total_price = models.DecimalField(max_digits=6, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    duty = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    date_created = models.DateTimeField(auto_now_add=True)
+    invoice = models.FileField('Photo', upload_to="invoices", blank=True, null=True)
+    distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
+    forwarder = models.ForeignKey(Forwarder, on_delete=models.PROTECT)
+
+    LOCATION_CHOICES = (
+        ('ad', 'At distributor'),
+        ('cc', 'In colection couriers truck'),
+        ('ct', 'In collection terminal'),
+        ('sp', 'Shipping'),
+        ('dt', 'In delivery terminal'),
+        ('dc', 'In delivery couriers truck'),
+    )
+
+    location = models.CharField(choices=LOCATION_CHOICES, max_length=2, default='ad')
+    objects = ShipmentManager()

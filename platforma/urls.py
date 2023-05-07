@@ -14,6 +14,10 @@ urlpatterns = [
 
 """common views"""
 urlpatterns = urlpatterns + [
+    path('locations/', views.ShipmentLocationsView.as_view(), name='locations_endpoint'),
+    path('shipments/<str:location>/', views.ShipmentsAtLocationView.as_view(), name='shipment_status_endpoint'),
+    path('shipments/<int:distributor_id>/<int:customer_id>/<int:forwarder_id>/<int:pk>/',
+         views.ShipmentDetailView.as_view(), name='shipment_endpoint'),
     path('search/', views.search, name='search_endpoint'),
     path('profile/', views.profilis, name='profile_endpoint'),
     path('accounts/', include('django.contrib.auth.urls')),
@@ -36,6 +40,8 @@ urlpatterns = urlpatterns + [
          name='delivery_endpoint'),
     path('mycart/<int:customer_id>/<int:pk>/delete/', views.ShoppingCartDeleteView.as_view(),
          name='cart_delete_endpoint'),
+    path('mycart/<int:customer_id>/purchase/', views.PurchaseAndPayView.as_view(),
+         name='purchase_cart_endpoint'),
     path('mycart/<int:customer_id>/<int:cart_id>/<int:pk>', views.ShoppingCartItemUpdateView.as_view(),
          name='update_cartitem_endpoint'),
 ]
@@ -52,4 +58,10 @@ urlpatterns = urlpatterns + [
          name='distributor_delete_item_endpoint'),
     path('myitems/<int:distributor_id>/<int:pk>/', views.ItemByDistributorView.as_view(),
          name='distributor_item_endpoint'),
+]
+
+"""Forwarder views"""
+urlpatterns = urlpatterns + [
+    path('myshipments/<int:forwarder_id>/', views.ShipmentsByForwarderListView.as_view(),
+         name='forwarder_shipments_endpoint'),
 ]

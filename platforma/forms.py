@@ -68,3 +68,11 @@ class DistributorItemCreateForm(forms.ModelForm):
                    'distributor': forms.HiddenInput()
                    }
         raw_id_fields = ('hs_tariff_id',)
+
+
+class PaymentForm(forms.Form):
+    confirm_purchase = forms.BooleanField(
+        required=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        label='I do purchase and pay for the items in my shopping cart.'
+    )

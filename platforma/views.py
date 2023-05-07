@@ -4,16 +4,22 @@ from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.views import generic
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage
+from django.core.files import File
+from django.core.files.base import ContentFile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-
 from django.http import HttpResponse, HttpResponseRedirect
+from django.conf import settings
+from django.utils import timezone
+import openpyxl
+from openpyxl.styles import Font
+import io
 
 from .models import Origin, HScode, HSTariff, Distributor, Forwarder, Customer, Item, ShoppingCart, \
-    ShoppingCartItem, ContractDelivery
+    ShoppingCartItem, ContractDelivery, Shipment, ShipmentManager
 from .forms import *
 
 
@@ -67,9 +73,11 @@ class ItemDetailView(generic.DetailView):
     template_name = 'item_detail.html'
 
     """Jei prisijungęs vartotojas yra prekės savininkas - redirektina į distributoriaus vievs"""
+
     def dispatch(self, request, *args, **kwargs):
         item = self.get_object()
-        if request.user.is_authenticated and hasattr(request.user, 'distributor') and item.distributor == request.user.distributor:
+        if request.user.is_authenticated and hasattr(request.user,
+                                                     'distributor') and item.distributor == request.user.distributor:
             return redirect('distributor_item_detail', distributor_id=request.user.distributor.pk, pk=item.pk)
         return super().dispatch(request, *args, **kwargs)
 
@@ -238,6 +246,93 @@ class ShoppingCartItemUpdateView(LoginRequiredMixin, UserPassesTestMixin, generi
         return reverse_lazy('cartitem_endpoint', kwargs={'customer_id': customer_id, 'cart_id': cart_id})
 
 
+class PurchaseAndPayView(LoginRequiredMixin, UserPassesTestMixin, generic.FormView):
+    """Ištrinamas krepšelis ir jo pagrindu suformuojami kroviniai"""
+    template_name = 'checkout.html'
+    form_class = PaymentForm
+    success_url = reverse_lazy('items_endpoint')
+
+    def test_func(self):
+        user = self.request.user
+        customer_id = self.kwargs.get('customer_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        return customer.customer_user == user
+
+    def create_invoice(self, cart):
+        """Sukuriamas invoisas kiekvienam kroviniui, saugoma media/invoices"""
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        sheet.merge_cells('D1:E1')
+        sheet['D1'] = 'INVOICE'
+        sheet['D1'].font = Font(bold=True, size=20)
+        sheet['D2'] = 'issued'
+        sheet['E2'] = cart.created_at.strftime('%Y-%m-%d')
+        sheet['A5'] = 'SELLER'
+        sheet['A5'] = str(cart.distributor.company_name)
+        sheet['A5'].font = Font(bold=True)
+        sheet['A6'] = str(cart.distributor.registration_code)
+        sheet['A7'] = str(cart.distributor.address)
+        sheet['A9'] = 'BUYER'
+        sheet['A10'] = str(cart.customer.name)
+        sheet['A10'].font = Font(bold=True)
+        sheet['A11'] = str(cart.customer.address)
+        sheet['A13'] = 'Item'
+        sheet['B13'] = 'HS code'
+        sheet['C13'] = 'Quantity'
+        sheet['E13'] = 'Price'
+        sheet['G13'] = 'Total'
+        counter = len(cart.shoppingcartitem_set.all()) + 14
+        for i, item in enumerate(cart.shoppingcartitem_set.all(), start=14):
+            sheet[f'A{i}'] = item.item.name
+            sheet[f'B{i}'] = str(item.item.hs_tariff_id.hs_code_id)
+            sheet[f'C{i}'] = item.quantity
+            sheet[f'D{i}'] = 'pcs.'
+            sheet[f'E{i}'] = item.item.price
+            sheet[f'F{i}'] = 'EUR'
+            sheet[f'G{i}'] = item.subtotal
+            sheet[f'H{i}'] = 'EUR'
+        sheet[f'A{counter}'] = 'Freight charges'
+        sheet[f'G{counter}'] = cart.delivery_price + cart.duty
+        sheet[f'A{counter+1}'] = 'Total items'
+        sheet[f'G{counter+1}'] = cart.items_price
+        sheet[f'A{counter+2}'] = 'Total pay'
+        sheet[f'G{counter+2}'] = cart.delivery_price + cart.duty + cart.items_price
+
+        filename = ''.join((str(cart.id), 'invoice.xlsx'))
+        with io.BytesIO() as buffer:
+            wb.save(buffer)
+            buffer.seek(0)
+            invoice_data = buffer.read()
+        invoice_file = ContentFile(invoice_data, name=filename)
+        return invoice_file
+
+    def create_shipments_for_customer(self, customer_id):
+        """Sukuriami kroviniai pagal vartotojo krepšelį kiekvienam pardavėjui atskirai"""
+        customer = get_object_or_404(Customer, id=customer_id)
+        shopping_carts = customer.shoppingcart_set.all()
+        for shopping_cart in shopping_carts:
+            contract_deliveries = ContractDelivery.objects.filter(
+                region=customer.region,
+                delivery=shopping_cart.cart_delivery_type,
+                distributor_id__in=shopping_carts.values_list('distributor', flat=True)
+            )
+            contract_delivery = contract_deliveries.first()
+            shipment = Shipment.objects.create(
+                total_price=shopping_cart.items_price + shopping_cart.delivery_price + shopping_cart.duty,
+                duty=shopping_cart.duty,
+                invoice=self.create_invoice(shopping_cart),
+                distributor=shopping_cart.distributor,
+                customer=shopping_cart.customer,
+                forwarder=contract_delivery.forwarder_id,
+            )
+            shopping_cart.delete()
+
+    def form_valid(self, form):
+        customer_id = self.kwargs['customer_id']
+        self.create_shipments_for_customer(customer_id)
+        return super().form_valid(form)
+
+
 class ItemByDistributorListView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
     model = Item
     paginate_by = 12
@@ -322,6 +417,69 @@ class ItemByDistributorView(LoginRequiredMixin, UserPassesTestMixin, generic.Det
         distributor_id = self.kwargs.get('distributor_id')
         distributor = get_object_or_404(Distributor, id=distributor_id)
         return distributor.distributor_user == user
+
+
+class ShipmentsByForwarderListView(LoginRequiredMixin, UserPassesTestMixin, generic.ListView):
+    model = Shipment
+    paginate_by = 20
+    template_name = 'forwarder_shipment_list.html'
+
+    def test_func(self):
+        user = self.request.user
+        forwarder_id = self.kwargs.get('forwarder_id')
+        forwarder = get_object_or_404(Forwarder, id=forwarder_id)
+        return forwarder.forwarder_user == user
+
+    def get_queryset(self):
+        forwarder = self.request.user.forwarder
+        return Shipment.objects.filter(forwarder=forwarder)
+
+
+class ShipmentLocationsView(LoginRequiredMixin, generic.ListView):
+    template_name = 'shipment_locations.html'
+    context_object_name = 'locations'
+
+    def get_queryset(self):
+        return Shipment.LOCATION_CHOICES
+
+
+class ShipmentsAtLocationView(LoginRequiredMixin, generic.ListView):
+    model = Shipment
+    paginate_by = 20
+    template_name = 'shipments_at_location.html'
+    context_object_name = 'shipment_list'
+
+    def get_queryset(self):
+        user = self.request.user
+        location = self.kwargs.get('location')
+        query = Q(location=location) & (
+            Q(distributor__distributor_user=user) |
+            Q(customer__customer_user=user) |
+            Q(forwarder__forwarder_user=user)
+        )
+        return Shipment.objects.filter(query)
+
+
+class ShipmentDetailView(LoginRequiredMixin, UserPassesTestMixin, generic.DetailView):
+    model = Shipment
+    template_name = 'shipment_detail.html'
+
+    def test_func(self):
+        user = self.request.user
+        distributor_id = self.kwargs.get('distributor_id')
+        distributor = get_object_or_404(Distributor, id=distributor_id)
+        customer_id = self.kwargs.get('customer_id')
+        customer = get_object_or_404(Customer, id=customer_id)
+        forwarder_id = self.kwargs.get('forwarder_id')
+        forwarder = get_object_or_404(Forwarder, id=forwarder_id)
+        return distributor.distributor_user == user \
+            or customer.customer_user == user \
+            or forwarder.forwarder_user == user
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data(object=self.object, now=timezone.now())
+        return self.render_to_response(context)
 
 
 """reikės stipresnių passwordų"""
