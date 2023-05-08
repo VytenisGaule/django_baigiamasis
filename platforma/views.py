@@ -11,6 +11,8 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
@@ -508,9 +510,6 @@ class ShipmentDetailView(LoginRequiredMixin, UserPassesTestMixin, generic.Detail
         return self.render_to_response(context)
 
 
-"""reikės stipresnių passwordų"""
-
-
 @csrf_protect
 def register(request):
     if request.method == 'POST':
@@ -520,19 +519,21 @@ def register(request):
         password2 = request.POST.get('password2')
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username %s already exists!!!" % username)
-            return redirect('register_endpoint')
         elif User.objects.filter(email=email).exists():
             messages.error(request, "Email %s already exists!!!" % email)
-            return redirect('register_endpoint')
         elif password != password2:
             messages.error(request, "Passwords doesn't match!!!")
-            return redirect('register_endpoint')
         else:
+            try:
+                password_validation.validate_password(password, request.user)
+            except ValidationError as er:
+                for error in er:
+                    messages.error(request, error)
+                return redirect('register_endpoint')
             User.objects.create_user(username=username, password=password, email=email)
-            messages.info(request, "User %s registered successfuly" % username)
+            messages.info(request, "User %s registered successfully" % username)
             return redirect('login')
-    else:
-        return render(request, 'registration/register.html')
+    return render(request, 'registration/register.html')
 
 
 @login_required
