@@ -510,6 +510,21 @@ class ShipmentDetailView(LoginRequiredMixin, UserPassesTestMixin, generic.Detail
         return self.render_to_response(context)
 
 
+class ShipmentByForwarderDelete(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
+    model = Shipment
+    template_name = 'forwarder_delete_shipment.html'
+
+    def test_func(self):
+        user = self.request.user
+        forwarder_id = self.kwargs.get('forwarder_id')
+        forwarder = get_object_or_404(Forwarder, id=forwarder_id)
+        return forwarder.forwarder_user == user
+
+    def get_success_url(self):
+        forwarder_id = self.kwargs.get('forwarder_id')
+        return reverse_lazy('forwarder_shipments_endpoint', kwargs={'forwarder_id': forwarder_id})
+
+
 @csrf_protect
 def register(request):
     if request.method == 'POST':

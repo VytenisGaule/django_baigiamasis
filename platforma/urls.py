@@ -66,5 +66,6 @@ urlpatterns = urlpatterns + [
          name='forwarder_shipments_endpoint'),
     path('shipments/update/<int:forwarder_id>/', views.ShipmentsAtLocationForwarderView.as_view(),
          name='shipment_update_endpoint'),
-    # path('shipments/change-location/', views.ChangeShipmentLocationView.as_view(), name='change_shipment_location'),
+    path('shipments/<int:forwarder_id>/<int:pk>/deliver/', views.ShipmentByForwarderDelete.as_view(),
+         name='deliver_shipment_endpoint'),
 ]

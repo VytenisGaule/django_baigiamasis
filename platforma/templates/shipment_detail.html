@@ -29,6 +29,9 @@
     {% with object.date_created|timesince:now as time_diff %}
       <p><span style="font-size: 20px;"><b>Time on the way:</b> {{ time_diff }}</span></p>
     {% endwith %}
+    {% if user.is_authenticated and user.forwarder %}
+      <a href="{% url 'deliver_shipment_endpoint' forwarder_id=object.forwarder.id pk=object.id %}" class="btn btn-primary">Deliver shipment</a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

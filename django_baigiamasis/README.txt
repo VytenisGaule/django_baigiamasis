@@ -1,3 +1,5 @@
+Vytenis Gaulė
+
 Web appsas - internetinės prekybos platforma su funkcionalumais prikėjams, pardavėjams, kurjeriams.
 Skirtingi vartotojai turi skirtingas teises ir skirtingus leidimus.
 
@@ -27,7 +29,6 @@ Skirtingi vartotojai turi skirtingas teises ir skirtingus leidimus.
             invoisai .xlsx  ir išsaugomi programoje.
             ## todo list:
             ## padaryti kad invoisus siųstų emailu pardavėjui + vartotojui sukūrimo momentu
-            ## padaryti kad invoisų sąrašą ir bendr1 muito mokesčio sumą kurjeriui emailu siųstų išmuitinimo momentu
 
     Distributor turi savo prekių sąrašą.
         Gali kurti naujas prekes, redaguoti esamas prekes.
@@ -49,7 +50,6 @@ Skirtingi vartotojai turi skirtingas teises ir skirtingus leidimus.
             ## todo list:
             ## Prekių išmuitinimo mygtukas pasirinktiems kroviniams:
                 ## parodyti muito mokesčio sumą
-                ## gauti invoisų sąrašą - pateikiama muitinei
-            ## Pristatymas vartotojui - delete krovinio objektas
+                ## gauti invoisų sąrašą ir muito mokesčio sumą kroviniams- pateikiama muitinei
 
 
