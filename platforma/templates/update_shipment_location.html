@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+{% load static %}
+
+<form method="post" action="{% url 'shipment_update_endpoint' forwarder_id=user.forwarder.id %}">
+  {% csrf_token %}
+  {% if shipment_list %}
+    <style>
+      table {
+        width: 100%;
+      }
+      th, td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #4CAF50;
+        color: white;
+      }
+      td {
+        width: 20%;
+      }
+    </style>
+    <table>
+      <thead>
+        <tr>
+          <th>Tracking ID</th>
+          <th>Created</th>
+          <th>Pick from:</th>
+          <th>Deliver to:</th>
+          <th>Location</th>
+          <th>Select</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for shipment_obj in shipment_list %}
+          <tr>
+            <td><a href="{% url 'shipment_endpoint' distributor_id=shipment_obj.distributor.id customer_id=shipment_obj.customer.id forwarder_id=shipment_obj.forwarder.id pk=shipment_obj.id %}">{{ shipment_obj.id }}</a></td>
+            <td>{{ shipment_obj.date_created }}</td>
+            <td>{{ shipment_obj.distributor }}</td>
+            <td>{{ shipment_obj.customer }}</td>
+            <td>{{ shipment_obj.get_location_display }}</td>
+            <td><input type="checkbox" name="selected_shipments[]" value="{{ shipment_obj.id }}"></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <label for="new_location">New Location:</label>
+    <select name="new_location" id="new_location">
+      {% for choice in locations %}
+      <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary">Change Location</button>
+  {% endif %}
+</form>
+{% endblock %}

@@ -460,6 +460,32 @@ class ShipmentsAtLocationView(LoginRequiredMixin, generic.ListView):
         return Shipment.objects.filter(query)
 
 
+class ShipmentsAtLocationForwarderView(LoginRequiredMixin, generic.ListView):
+    model = Shipment
+    paginate_by = 20
+    template_name = 'update_shipment_location.html'
+    context_object_name = 'shipment_list'
+
+    def get_queryset(self):
+        user = self.request.user
+        query = Q(forwarder__forwarder_user=user)
+        return Shipment.objects.filter(query)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['locations'] = Shipment.LOCATION_CHOICES
+        return context
+
+    def post(self, request, forwarder_id):
+        selected_shipments = request.POST.getlist('selected_shipments[]')
+        new_location = request.POST.get('new_location')
+        for shipment_id in selected_shipments:
+            shipment = Shipment.objects.get(pk=shipment_id)
+            shipment.location = new_location
+            shipment.save()
+        return redirect('shipment_update_endpoint', forwarder_id=forwarder_id)
+
+
 class ShipmentDetailView(LoginRequiredMixin, UserPassesTestMixin, generic.DetailView):
     model = Shipment
     template_name = 'shipment_detail.html'
